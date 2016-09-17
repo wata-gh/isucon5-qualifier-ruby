@@ -198,13 +198,16 @@ SQL
       break if comments_of_friends.size >= 10
     end
 
-    friends_query = 'SELECT * FROM relations WHERE one = ? OR another = ? ORDER BY created_at DESC'
+    friends_query = 'SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC'
     friends_map = {}
     db.xquery(friends_query, current_user[:id], current_user[:id]).each do |rel|
-      key = (rel[:one] == current_user[:id] ? :another : :one)
-      friends_map[rel[key]] ||= rel[:created_at]
+      friends_map[rel[:one]] ||= rel[:created_at]
     end
-    friends = friends_map.map{|user_id, created_at| [user_id, created_at]}
+    friends_query = 'SELECT * FROM relations WHERE another = ? ORDER BY created_at DESC'
+    db.xquery(friends_query, current_user[:id], current_user[:id]).each do |rel|
+      friends_map[rel[:another]] ||= rel[:created_at]
+    end
+    friends = friends_map.map{|user_id, created_at| [user_id, created_at]}.sort_by{|a| a[1]}.reverse
 
     query = <<SQL
 SELECT user_id, owner_id, DATE(created_at) AS date, MAX(created_at) AS updated
