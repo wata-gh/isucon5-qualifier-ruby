@@ -191,7 +191,8 @@ SQL
     entries_of_friends_query = <<SQL
 SELECT
  id,
- SUBSTRING_INDEX(body, '\n', 1) AS title
+ SUBSTRING_INDEX(body, '\n', 1) AS title,
+ user_id
 FROM entries e
 WHERE
  e.user_id in (#{friend_ids})
