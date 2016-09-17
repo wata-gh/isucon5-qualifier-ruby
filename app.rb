@@ -72,7 +72,7 @@ SQL
       unless session[:user_id]
         return nil
       end
-      @user = db.xquery('SELECT id, account_name, nick_name, email FROM users WHERE id=?', session[:user_id]).first
+      @user = db.xquery('SELECT id, account_name, nick_name, email FROM users WHERE id=? LIMIT 1', session[:user_id]).first
       unless @user
         session[:user_id] = nil
         session.clear
@@ -88,13 +88,13 @@ SQL
     end
 
     def get_user(user_id)
-      user = db.xquery('SELECT * FROM users WHERE id = ?', user_id).first
+      user = db.xquery('SELECT * FROM users WHERE id = ? LIMIT 1', user_id).first
       raise Isucon5::ContentNotFound unless user
       user
     end
 
     def user_from_account(account_name)
-      user = db.xquery('SELECT * FROM users WHERE account_name = ?', account_name).first
+      user = db.xquery('SELECT * FROM users WHERE account_name = ? LIMIT 1', account_name).first
       raise Isucon5::ContentNotFound unless user
       user
     end
