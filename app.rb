@@ -100,10 +100,14 @@ SQL
     end
 
     def is_friend?(another_id)
+      @friends[another_id] if defined? @friends
       user_id = session[:user_id]
-      query = 'SELECT COUNT(1) AS cnt FROM relations WHERE one = ? AND another = ?'
-      cnt = db.xquery(query, user_id, another_id).first[:cnt]
-      cnt.to_i > 0 ? true : false
+      query = 'SELECT another FROM relations WHERE one = ?'
+      @friends = Hash.new(false)
+      cnt = db.xquery(query, user_id).each do |rel|
+        @friends[rel[:another]] = true
+      end
+      @friends[another_id]
     end
 
     def is_friend_account?(account_name)
