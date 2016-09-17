@@ -187,15 +187,19 @@ LIMIT 10
 SQL
     comments_for_me = db.xquery(comments_for_me_query, current_user[:id])
 
-    entries_of_friends = []
-    db.query('SELECT * FROM entries ORDER BY created_at DESC LIMIT 1000').each do |entry|
-      next unless is_friend?(entry[:user_id])
-      entry[:title] = entry[:body].split(/\n/).first
-      entries_of_friends << entry
-      break if entries_of_friends.size >= 10
-    end
-
     friend_ids = friends.keys.join(',')
+    entries_of_friends_query = <<SQL
+SELECT
+ id,
+ SUBSTRING_INDEX(body, '\n', 1) AS title
+FROM entries e
+WHERE
+ e.user_id in (#{friend_ids})
+ORDER BY created_at DESC
+LIMIT 10
+SQL
+    entries_of_friends = db.xquery(entries_of_friends_query)
+
     comments_of_friends_query = <<SQL
 SELECT c.* FROM comments c
 JOIN entries e ON c.entry_id = e.id
