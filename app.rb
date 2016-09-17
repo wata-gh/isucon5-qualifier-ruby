@@ -101,8 +101,8 @@ SQL
 
     def is_friend?(another_id)
       user_id = session[:user_id]
-      query = 'SELECT COUNT(1) AS cnt FROM relations WHERE (one = ? AND another = ?) OR (one = ? AND another = ?)'
-      cnt = db.xquery(query, user_id, another_id, another_id, user_id).first[:cnt]
+      query = 'SELECT COUNT(1) AS cnt FROM relations WHERE one = ? AND another = ?'
+      cnt = db.xquery(query, user_id, another_id).first[:cnt]
       cnt.to_i > 0 ? true : false
     end
 
@@ -202,10 +202,6 @@ SQL
     friends_map = {}
     db.xquery(friends_query, current_user[:id]).each do |rel|
       friends_map[rel[:another]] ||= rel[:created_at]
-    end
-    friends_query = 'SELECT * FROM relations WHERE another = ? ORDER BY created_at DESC'
-    db.xquery(friends_query, current_user[:id]).each do |rel|
-      friends_map[rel[:one]] ||= rel[:created_at]
     end
     friends = friends_map.map{|user_id, created_at| [user_id, created_at]}.sort_by{|a| a[1]}.reverse
 
@@ -340,11 +336,10 @@ SQL
 
   get '/friends' do
     authenticated!
-    query = 'SELECT * FROM relations WHERE one = ? OR another = ? ORDER BY created_at DESC'
+    query = 'SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC'
     friends = {}
-    db.xquery(query, current_user[:id], current_user[:id]).each do |rel|
-      key = (rel[:one] == current_user[:id] ? :another : :one)
-      friends[rel[key]] ||= rel[:created_at]
+    db.xquery(query, current_user[:id]).each do |rel|
+      friends[rel[:another]] ||= rel[:created_at]
     end
     list = friends.map{|user_id, created_at| [user_id, created_at]}
     erb :friends, locals: { friends: list }
