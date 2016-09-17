@@ -207,7 +207,7 @@ AND (
 ORDER BY c.id DESC LIMIT 10
 SQL
 
-    comments_of_friends = db.query(comments_of_friends_query, current_user[:id])
+    comments_of_friends = db.xquery(comments_of_friends_query, current_user[:id])
 
     friends_query = 'SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC'
     friends_map = {}
