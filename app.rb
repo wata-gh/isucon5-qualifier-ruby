@@ -164,7 +164,7 @@ SQL
   get '/' do
     authenticated!
 
-    profile = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', current_user[:id]).first
+    profile = db.xquery('SELECT * FROM profiles WHERE user_id = ?', current_user[:id]).first
 
     entries_query = 'SELECT * FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5'
     entries = db.xquery(entries_query, current_user[:id])
@@ -230,7 +230,7 @@ SQL
   get '/profile/:account_name' do
     authenticated!
     owner = user_from_account(params['account_name'])
-    prof = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', owner[:id]).first
+    prof = db.xquery('SELECT * FROM profiles WHERE user_id = ?', owner[:id]).first
     prof = {} unless prof
     query = if permitted?(owner[:id])
               'SELECT * FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5'
@@ -250,7 +250,7 @@ SQL
     end
     args = [params['first_name'], params['last_name'], params['sex'], params['birthday'], params['pref']]
 
-    prof = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', current_user[:id]).first
+    prof = db.xquery('SELECT * FROM profiles WHERE user_id = ?', current_user[:id]).first
     if prof
       query = <<SQL
 UPDATE profiles
