@@ -171,7 +171,7 @@ SQL
   get '/' do
     authenticated!
 
-    profile = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', current_user[:id]).first
+    profile = db.xquery('SELECT id, SUBSTRING_INDEX(body, '\n', 1) AS title FROM profiles WHERE user_id = ? LIMIT 1', current_user[:id]).first
 
     entries_query = 'SELECT * FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5'
     entries = db.xquery(entries_query, current_user[:id])
