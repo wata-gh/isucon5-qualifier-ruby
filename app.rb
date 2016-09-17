@@ -101,10 +101,9 @@ SQL
 
     def friends
       return @friends if defined? @friends
-
       query = 'SELECT another FROM relations WHERE one = ?'
       @friends = {}
-      cnt = db.xquery(query, user_id).each do |rel|
+      cnt = db.xquery(query, current_user[:id]).each do |rel|
         @friends[rel[:another]] = rel
       end
     end
