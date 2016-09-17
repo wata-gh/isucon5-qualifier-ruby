@@ -201,11 +201,11 @@ SQL
     friends_query = 'SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC'
     friends_map = {}
     db.xquery(friends_query, current_user[:id]).each do |rel|
-      friends_map[rel[:one]] ||= rel[:created_at]
+      friends_map[rel[:another]] ||= rel[:created_at]
     end
     friends_query = 'SELECT * FROM relations WHERE another = ? ORDER BY created_at DESC'
     db.xquery(friends_query, current_user[:id]).each do |rel|
-      friends_map[rel[:another]] ||= rel[:created_at]
+      friends_map[rel[:one]] ||= rel[:created_at]
     end
     friends = friends_map.map{|user_id, created_at| [user_id, created_at]}.sort_by{|a| a[1]}.reverse
 
