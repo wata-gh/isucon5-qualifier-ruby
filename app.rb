@@ -100,7 +100,7 @@ SQL
     end
 
     def is_friend?(another_id)
-      @friends[another_id] if defined? @friends
+      return @friends[another_id] if defined? @friends
       user_id = session[:user_id]
       query = 'SELECT another FROM relations WHERE one = ?'
       @friends = Hash.new(false)
