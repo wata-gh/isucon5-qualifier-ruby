@@ -207,7 +207,7 @@ SQL
     db.xquery(friends_query, current_user[:id], current_user[:id]).each do |rel|
       friends_map[rel[:another]] ||= rel[:created_at]
     end
-    friends = friends_map.map{|user_id, created_at| [user_id, created_at]}.sort_by{|a| a.second}
+    friends = friends_map.map{|user_id, created_at| [user_id, created_at]}.sort_by{|a| a[1]}.reverse
 
     query = <<SQL
 SELECT user_id, owner_id, DATE(created_at) AS date, MAX(created_at) AS updated
