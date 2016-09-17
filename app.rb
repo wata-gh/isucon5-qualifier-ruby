@@ -171,11 +171,20 @@ SQL
   get '/' do
     authenticated!
 
-    profile = db.xquery('SELECT id, SUBSTRING_INDEX(body, '\n', 1) AS title FROM profiles WHERE user_id = ? LIMIT 1', current_user[:id]).first
+    profile = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', current_user[:id]).first
 
-    entries_query = 'SELECT * FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5'
+    entries_query = <<SQL
+SELECT
+ id,
+ SUBSTRING_INDEX(body, '\n', 1) AS title,
+ private
+FROM entries
+WHERE user_id = ?
+ORDER BY created_at
+LIMIT 5
+SQL
     entries = db.xquery(entries_query, current_user[:id])
-      .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
+      .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry }
 
     comments_for_me_query = <<SQL
 SELECT c.id AS id, c.entry_id AS entry_id, c.user_id AS user_id, c.comment AS comment, c.created_at AS created_at
