@@ -99,15 +99,18 @@ SQL
       user
     end
 
-    def is_friend?(another_id)
-      return @friends[another_id] if defined? @friends
-      user_id = session[:user_id]
+    def friends
+      return @friends if defined? @friends
+
       query = 'SELECT another FROM relations WHERE one = ?'
-      @friends = Hash.new(false)
+      @friends = {}
       cnt = db.xquery(query, user_id).each do |rel|
-        @friends[rel[:another]] = true
+        @friends[rel[:another]] = rel
       end
-      @friends[another_id]
+    end
+
+    def is_friend?(another_id)
+      friends[another_id] != nil
     end
 
     def is_friend_account?(account_name)
@@ -192,15 +195,20 @@ SQL
       break if entries_of_friends.size >= 10
     end
 
-    comments_of_friends = []
-    db.query('SELECT * FROM comments ORDER BY created_at DESC LIMIT 1000').each do |comment|
-      next unless is_friend?(comment[:user_id])
-      entry = db.xquery('SELECT * FROM entries WHERE id = ?', comment[:entry_id]).first
-      entry[:is_private] = (entry[:private] == 1)
-      next if entry[:is_private] && !permitted?(entry[:user_id])
-      comments_of_friends << comment
-      break if comments_of_friends.size >= 10
-    end
+    friend_ids = friends.keys.join(',')
+    comments_of_friends_query = <<SQL
+SELECT c.* FROM comments c
+JOIN entries e ON c.entry_id = e.id
+WHERE c.user_id IN (#{friend_ids})
+AND (
+  e.private = 0
+  OR
+  e.private = 1 AND (e.user_id = ? OR e.user_id IN (#{friend_ids}))
+)
+ORDER BY c.id DESC LIMIT 10
+SQL
+
+    comments_of_friends = db.query(comments_of_friends_query, current_user[:id])
 
     friends_query = 'SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC'
     friends_map = {}
