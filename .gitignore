@@ -2,3 +2,4 @@ unicorn.pid
 vendor
 .bundle
 *.dump
+static
