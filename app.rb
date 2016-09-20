@@ -96,13 +96,13 @@ SQL
     end
 
     def get_user(user_id)
-      user = db.xquery('SELECT * FROM users WHERE id = ? LIMIT 1', user_id).first
+      user = JSON.parse(redis.get(user_id.to_s), symbolize_names: true)
       raise Isucon5::ContentNotFound unless user
       user
     end
 
     def user_from_account(account_name)
-      user = db.xquery('SELECT * FROM users WHERE account_name = ? LIMIT 1', account_name).first
+      user = JSON.parse(redis.get(account_name), symbolize_names: true)
       raise Isucon5::ContentNotFound unless user
       user
     end
@@ -402,8 +402,8 @@ FROM users u
 JOIN salts s ON u.id = s.user_id
 SQL
     db.xquery(query).each do |rel|
-      puts "redis storing #{rel[:id]} -> #{rel.to_json}"
       redis.set(rel[:id], rel.to_json)
+      redis.set(rel[:account_name], rel.to_json)
     end
     db.query("DELETE FROM relations WHERE id > 500000")
     db.query("DELETE FROM footprints WHERE id > 500000")
