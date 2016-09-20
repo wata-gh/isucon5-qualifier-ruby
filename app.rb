@@ -179,7 +179,7 @@ SQL
   get '/' do
     authenticated!
 
-    profile = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', current_user[:id]).first
+    profile = JSON.parse(redis.get("profiles/#{current_user[:id]}"), symbolize_names: true)
 
     entries_query = <<SQL
 SELECT
@@ -264,7 +264,7 @@ SQL
   get '/profile/:account_name' do
     authenticated!
     owner = user_from_account(params['account_name'])
-    prof = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', owner[:id]).first
+    prof = JSON.parse(redis.get("profiles/#{owner[:id]}"), symbolize_names: true)
     prof = {} unless prof
     query = if permitted?(owner[:id])
               'SELECT * FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5'
@@ -284,7 +284,7 @@ SQL
     end
     args = [params['first_name'], params['last_name'], params['sex'], params['birthday'], params['pref']]
 
-    prof = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', current_user[:id]).first
+    prof = JSON.parse(redis.get("profiles/#{current_user[:id]}"), symbolize_names: true)
     if prof
       query = <<SQL
 UPDATE profiles
@@ -299,6 +299,14 @@ SQL
       args.unshift(current_user[:id])
     end
     db.xquery(query, *args)
+
+    # update cache
+    prof[:first_name] = args[1]
+    prof[:last_name] = args[2]
+    prof[:sex] = args[3]
+    prof[:birthday] = args[4]
+    prof[:pref] = args[5]
+    redis.set("profiles/#{current_user[:id]}", prof.to_json)
     redirect "/profile/#{params['account_name']}"
   end
 
@@ -404,6 +412,20 @@ SQL
     db.xquery(query).each do |rel|
       redis.set(rel[:id], rel.to_json)
       redis.set(rel[:account_name], rel.to_json)
+    end
+    query = <<SQL
+SELECT
+  user_id,
+  first_name,
+  last_name,
+  sex,
+  birthday,
+  pref,
+  updated_at
+FROM profiles
+SQL
+    db.xquery(query).each do |rel|
+      redis.set("profiles/#{rel[:user_id]}", rel.to_json)
     end
     db.query("DELETE FROM relations WHERE id > 500000")
     db.query("DELETE FROM footprints WHERE id > 500000")
