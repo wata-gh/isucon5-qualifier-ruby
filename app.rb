@@ -1,8 +1,11 @@
+require 'json'
 require 'sinatra/base'
 require 'mysql2'
 require 'mysql2-cs-bind'
 require 'tilt/erubis'
 require 'erubis'
+require 'redis'
+require 'hiredis'
 
 module Isucon5
   class AuthenticationError < StandardError; end
@@ -52,6 +55,11 @@ class Isucon5::WebApp < Sinatra::Base
       client
     end
 
+    def redis
+      Thread.current[:redis] ||=
+        Redis.new(:host => "127.0.0.1", :port => 6379, driver: :hiredis)
+    end
+
     def authenticate(email, password)
       query = <<SQL
 SELECT u.id AS id, u.account_name AS account_name, u.nick_name AS nick_name, u.email AS email
@@ -72,7 +80,7 @@ SQL
       unless session[:user_id]
         return nil
       end
-      @user = db.xquery('SELECT id, account_name, nick_name, email FROM users WHERE id=? LIMIT 1', session[:user_id]).first
+      @user = JSON.parse(redis.get(session[:user_id].to_s), symbolize_names: true)
       unless @user
         session[:user_id] = nil
         session.clear
@@ -388,5 +396,19 @@ SQL
     db.query("DELETE FROM footprints WHERE id > 500000")
     db.query("DELETE FROM entries WHERE id > 500000")
     db.query("DELETE FROM comments WHERE id > 1500000")
+
+    query = <<SQL
+SELECT
+  u.id AS id,
+  u.account_name AS account_name,
+  u.nick_name AS nick_name,
+  u.email AS email
+FROM users u
+JOIN salts s ON u.id = s.user_id
+SQL
+    result = db.xquery(query).each do |rel|
+      puts "redis storing #{rel[:id]} -> #{rel.to_json}"
+      redis.set(rel[:id], rel.to_json)
+    end
   end
 end
