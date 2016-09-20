@@ -47,7 +47,7 @@
       </select>
     </div>
     <div>誕生日:
-      <input type="date" name="birthday" min="1915-01-01" max="2014-12-31" value="<%= profile[:birthday] ? profile[:birthday].strftime('%Y-%m-%d') : "2000-01-01" %>" />
+      <input type="date" name="birthday" min="1915-01-01" max="2014-12-31" value="<%= profile[:birthday] ? profile[:birthday] : "2000-01-01" %>" />
     </div>
     <div>住んでいる県:
       <select name="pref">
