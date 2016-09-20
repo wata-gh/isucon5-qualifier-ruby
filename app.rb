@@ -378,7 +378,7 @@ SQL
 
   get '/friends' do
     authenticated!
-    query = 'SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC'
+    query = 'SELECT another, created_at FROM relations WHERE one = ? ORDER BY created_at DESC'
     friends = {}
     db.xquery(query, current_user[:id]).each do |rel|
       friends[rel[:another]] ||= rel[:created_at]
