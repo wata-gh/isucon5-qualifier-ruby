@@ -33,7 +33,7 @@ class Isucon5::WebApp < Sinatra::Base
       query = 'INSERT INTO raw_sql_logs (request_id, sql_text, caller, duration) VALUES (?,?,?,?)'
       db = Thread.current[:isucon5_db]
       request_id = Thread.current[:request].env['HTTP_X_LUA_PROXY_ID']
-      db.xquery(query, 1, mesg[:sql], mesg[:caller], mesg[:duration])
+      db.xquery(query, request_id, mesg[:sql], mesg[:caller], mesg[:duration])
     end
   end
 
