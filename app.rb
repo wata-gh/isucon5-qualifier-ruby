@@ -6,6 +6,7 @@ require 'tilt/erubis'
 require 'erubis'
 require 'redis'
 require 'hiredis'
+require './mysql2_query_logger'
 
 module Isucon5
   class AuthenticationError < StandardError; end
@@ -26,6 +27,14 @@ class Isucon5::WebApp < Sinatra::Base
   #set :sessions, true
   set :session_secret, ENV['ISUCON5_SESSION_SECRET'] || 'beermoris'
   set :protection, true
+
+  configure do
+    Mysql2QueryLogger.enable! do |mesg|
+      query = 'INSERT INTO raw_sql_logs (raw_http_log_id, sql_text, caller, duration) VALUES (?,?,?,?)'
+      db = Thread.current[:isucon5_db]
+      db.xquery(query, 1, mesg[:sql], mesg[:caller], mesg[:duration])
+    end
+  end
 
   helpers do
     def config
