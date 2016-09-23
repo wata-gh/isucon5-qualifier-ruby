@@ -200,7 +200,12 @@ SQL
       .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry }
 
     comments_for_me_query = <<SQL
-SELECT c.id AS id, c.entry_id AS entry_id, c.user_id AS user_id, c.comment AS comment, c.created_at AS created_at
+SELECT
+  c.id AS id,
+  c.entry_id AS entry_id,
+  c.user_id AS user_id,
+  c.comment AS comment,
+  c.created_at AS created_at
 FROM comments c
 JOIN entries e ON c.entry_id = e.id
 WHERE e.user_id = ?
@@ -254,10 +259,16 @@ SQL
     friends = friends_map.map{|user_id, created_at| [user_id, created_at]}.sort_by{|a| a[1]}.reverse
 
     query = <<SQL
-SELECT user_id, owner_id, DATE(created_at) AS date, MAX(created_at) AS updated
-FROM footprints
-WHERE user_id = ?
-GROUP BY user_id, owner_id, DATE(created_at)
+SELECT
+  f.user_id,
+  f.owner_id, DATE(f.created_at) AS date,
+  MAX(f.created_at) AS updated,
+  u.account_name,
+  u.nick_name
+FROM footprints f
+JOIN users u ON f.owner_id = u.id
+WHERE f.user_id = ?
+GROUP BY f.user_id, f.owner_id, DATE(f.created_at)
 ORDER BY updated DESC
 LIMIT 10
 SQL
