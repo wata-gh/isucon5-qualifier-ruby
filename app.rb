@@ -226,9 +226,12 @@ SQL
     comments_of_friends_query = <<SQL
 SELECT
   c.*,
-  e.user_id as entry_user_id
+  e.user_id as entry_user_id,
+  u.account_name as entry_account_name,
+  u.nick_name as entry_nick_name
 FROM comments c
 JOIN entries e ON c.entry_id = e.id
+JOIN users u on e.user_id = u.id
 WHERE c.user_id IN (#{friend_ids})
 AND (
   e.private = 0
@@ -239,6 +242,9 @@ ORDER BY c.id DESC LIMIT 10
 SQL
 
     comments_of_friends = db.xquery(comments_of_friends_query, current_user[:id])
+    comments_users_hash = db.xquery("select id, account_name, nick_name from users where id in (#{comments_of_friends.map{|c| c[:user_id]}.join(',')})").each_with_object({}) do |rel, h|
+      h[rel[:id]] = rel
+    end
 
     friends_query = 'SELECT * FROM relations WHERE one = ? ORDER BY created_at DESC'
     friends_map = {}
@@ -263,6 +269,7 @@ SQL
       comments_for_me: comments_for_me,
       entries_of_friends: entries_of_friends,
       comments_of_friends: comments_of_friends,
+      comments_users_hash: comments_users_hash,
       friends: friends,
       footprints: footprints
     }
