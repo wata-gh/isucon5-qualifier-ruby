@@ -1,0 +1,5 @@
+adapter: mysql2
+encoding: utf8
+database: isucon5q
+username: isucon
+password: isucon

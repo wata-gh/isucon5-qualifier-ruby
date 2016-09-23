@@ -5,7 +5,9 @@ if not db then
   ngx.say("failed to instantiate mysql: ", err)
   return
 end
+
 db:set_timeout(1000) -- 1 sec
+
 local ok, err, errcode, sqlstate = db:connect{
   host = "127.0.0.1",
   port = 3306,
@@ -23,7 +25,6 @@ local method = ngx.req.get_method() == "GET" and ngx.HTTP_GET or ngx.HTTP_POST
 
 local request_time = ngx.now()
 local cap_res = ngx.location.capture("/_app" .. ngx.var.request_uri, { method = method, share_all_vars = true, body = ngx.req.get_body_data() })
-y_data() })
 request_time = ngx.now() - request_time
 
 local h = cap_res.header
@@ -32,7 +33,7 @@ for k, v in pairs(h) do
   raw_header = raw_header .. "\n" .. k .. ": " .. v
 end
 
-local normalized_path = route.normalize(ngx.var.uri)
+local normalized_path = route.normalize(ngx.req.get_method(), ngx.var.uri)
 
 local req_body = ngx.req.get_body_data() == nil and "" or ngx.req.get_body_data()
 local sql = "insert into raw_http_logs (request_id, method, normalized_path, path, http_version, req_header, req_body, status, res_header, res_body, res_time) values ("

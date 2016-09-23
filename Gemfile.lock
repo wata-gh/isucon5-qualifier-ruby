@@ -1,9 +1,27 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    activemodel (4.2.7.1)
+      activesupport (= 4.2.7.1)
+      builder (~> 3.1)
+    activerecord (4.2.7.1)
+      activemodel (= 4.2.7.1)
+      activesupport (= 4.2.7.1)
+      arel (~> 6.0)
+    activesupport (4.2.7.1)
+      i18n (~> 0.7)
+      json (~> 1.7, >= 1.7.7)
+      minitest (~> 5.1)
+      thread_safe (~> 0.3, >= 0.3.4)
+      tzinfo (~> 1.1)
+    arel (6.0.3)
+    builder (3.2.2)
     erubis (2.7.0)
     hiredis (0.6.1)
+    i18n (0.7.0)
+    json (1.8.3)
     kgio (2.10.0)
+    minitest (5.9.0)
     mysql2 (0.4.0)
     mysql2-cs-bind (0.0.6)
       mysql2
@@ -12,11 +30,16 @@ GEM
       rack
     raindrops (0.15.0)
     redis (3.3.1)
+    ridgepole (0.6.4)
+      activerecord (~> 4.2.1)
     sinatra (1.4.6)
       rack (~> 1.4)
       rack-protection (~> 1.4)
       tilt (>= 1.3, < 3)
+    thread_safe (0.3.5)
     tilt (2.0.1)
+    tzinfo (1.2.2)
+      thread_safe (~> 0.1)
     unicorn (4.9.0)
       kgio (~> 2.6)
       rack
@@ -31,8 +54,9 @@ DEPENDENCIES
   mysql2
   mysql2-cs-bind
   redis
+  ridgepole
   sinatra
   unicorn
 
 BUNDLED WITH
-   1.12.5
+   1.13.1

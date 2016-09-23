@@ -9,3 +9,4 @@ gem "unicorn"
 
 gem 'redis'
 gem 'hiredis'
+gem 'ridgepole'
