@@ -391,12 +391,18 @@ SQL
 
   get '/friends' do
     authenticated!
-    query = 'SELECT another, created_at FROM relations WHERE one = ? ORDER BY created_at DESC'
-    friends = {}
-    db.xquery(query, current_user[:id]).each do |rel|
-      friends[rel[:another]] ||= rel[:created_at]
-    end
-    list = friends.map{|user_id, created_at| [user_id, created_at]}
+    query = <<SQL
+SELECT
+  r.another,
+  r.created_at,
+  u.account_name,
+  u.nick_name
+FROM
+  relations r LEFT JOIN users u ON u.id = r.another
+WHERE
+  r.one = ? ORDER BY r.created_at DESC
+SQL
+    list = db.xquery(query, current_user[:id])
     erb :friends, locals: { friends: list }
   end
 
