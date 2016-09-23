@@ -1,4 +1,3 @@
-local uuid = require("uuid4")
 local mysql = require "resty.mysql"
 local db, err = mysql:new()
 if not db then
@@ -21,11 +20,9 @@ end
 ngx.req.read_body()
 local method = ngx.req.get_method() == "GET" and ngx.HTTP_GET or ngx.HTTP_POST
 
--- local request_id = uuid.getUUID()
 local request_time = ngx.now()
--- local cap_res = ngx.location.capture("/_app" .. ngx.var.request_uri, { method = method, body = ngx.req.get_body_data() })
 local cap_res = ngx.location.capture("/_app" .. ngx.var.request_uri, { method = method, share_all_vars = true, body = ngx.req.get_body_data() })
--- local cap_res = ngx.location.capture("/_app" .. ngx.var.request_uri, { method = method, header = { "X-Lua-Proxy-Id" = request_id }, body = ngx.req.get_body_data() })
+y_data() })
 request_time = ngx.now() - request_time
 
 local h = cap_res.header
@@ -33,6 +30,7 @@ local raw_header = ""
 for k, v in pairs(h) do
   raw_header = raw_header .. "\n" .. k .. ": " .. v
 end
+
 local req_body = ngx.req.get_body_data() == nil and "" or ngx.req.get_body_data()
 local sql = "insert into raw_http_logs (request_id, method, path, http_version, req_header, req_body, status, res_header, res_body, res_time) values (" 
   .. "  \'" .. ngx.var.request_id .. "\'"      -- request_id
@@ -52,6 +50,7 @@ if not res then
   ngx.say(sql)
   return
 end
+
 if cap_res then
   ngx.status = cap_res.status
   local h = cap_res.header
@@ -60,7 +59,6 @@ if cap_res then
   end
   ngx.header["X-Lua-Proxy"] = "1"
   ngx.print(cap_res.body)
-  -- ngx.exec("/login")
 else
   ngx.say("no response found")
 end
