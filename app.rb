@@ -326,7 +326,15 @@ SQL
     entries = db.xquery(query, owner[:id])
       .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
     mark_footprint(owner[:id])
-    erb :entries, locals: { owner: owner, entries: entries, myself: (current_user[:id] == owner[:id]) }
+    query = <<SQL
+select entry_id, count(1) count from comments
+where entry_id in (#{entries.map {|e| e[:id]}.join(',')})
+group by entry_id
+SQL
+    comment_count_hash = db.xquery(query).each_with_object(Hash.new(0)) do |rel, h|
+      h[rel[:entry_id]] = rel[:count]
+    end
+    erb :entries, locals: { owner: owner, entries: entries, myself: (current_user[:id] == owner[:id]), comment_count_hash: comment_count_hash }
   end
 
   get '/diary/entry/:entry_id' do
