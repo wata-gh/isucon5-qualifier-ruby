@@ -72,13 +72,7 @@ class Isucon5::WebApp < Sinatra::Base
     end
 
     def authenticate(email, password)
-      query = <<SQL
-SELECT u.id AS id, u.account_name AS account_name, u.nick_name AS nick_name, u.email AS email
-FROM users u
-JOIN salts s ON u.id = s.user_id
-WHERE u.email = ? AND u.passhash = SHA2(CONCAT(?, s.salt), 512)
-SQL
-      result = db.xquery(query, email, password).first
+      result = JSON.parse(redis.get(email), symbolize_names: true)
       unless result
         raise Isucon5::AuthenticationError
       end
@@ -421,8 +415,10 @@ FROM users u
 JOIN salts s ON u.id = s.user_id
 SQL
     db.xquery(query).each do |rel|
-      redis.set(rel[:id], rel.to_json)
-      redis.set(rel[:account_name], rel.to_json)
+      json = rel.to_json
+      redis.set(rel[:id], json)
+      redis.set(rel[:account_name], json)
+      redis.set(rel[:email], json)
     end
     query = <<SQL
 SELECT
