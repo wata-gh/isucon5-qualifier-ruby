@@ -224,7 +224,10 @@ SQL
     entries_of_friends = db.xquery(entries_of_friends_query)
 
     comments_of_friends_query = <<SQL
-SELECT c.* FROM comments c
+SELECT
+  c.*,
+  e.user_id as entry_user_id
+FROM comments c
 JOIN entries e ON c.entry_id = e.id
 WHERE c.user_id IN (#{friend_ids})
 AND (
@@ -407,15 +410,12 @@ SQL
   end
 
   post '/friends/:account_name' do
-    authenticated!
-    unless is_friend_account?(params['account_name'])
-      user = user_from_account(params['account_name'])
-      unless user
-        raise Isucon5::ContentNotFound
-      end
-      db.xquery('INSERT INTO relations (one, another) VALUES (?,?), (?,?)', current_user[:id], user[:id], user[:id], current_user[:id])
-      redirect '/friends'
+    user = user_from_account(params['account_name'])
+    unless user
+      raise Isucon5::ContentNotFound
     end
+    db.xquery('INSERT INTO relations (one, another) VALUES (?,?), (?,?)', current_user[:id], user[:id], user[:id], current_user[:id])
+    redirect '/friends'
   end
 
   get '/initialize' do
