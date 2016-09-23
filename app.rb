@@ -150,6 +150,18 @@ class Isucon5::WebApp < Sinatra::Base
     def prefectures
       PREFS
     end
+
+    def get_top_cache(user_id)
+      redis.get("top/#{user_id}")
+    end
+
+    def cache_top(user_id, html)
+      redis.set("top/#{user_id}", html)
+    end
+
+    def clear_top_cache(user_id)
+      redis.del("top/#{user_id}")
+    end
   end
 
   error Isucon5::AuthenticationError do
@@ -183,6 +195,14 @@ class Isucon5::WebApp < Sinatra::Base
 
   get '/' do
     authenticated!
+
+    cache = get_top_cache(session[:user_id])
+    if cache
+      puts 'from cache'
+      return cache
+    else
+      puts 'not cache'
+    end
 
     profile = JSON.parse(redis.get("profiles/#{current_user[:id]}"), symbolize_names: true)
 
@@ -284,7 +304,9 @@ SQL
       friends: friends,
       footprints: footprints
     }
-    erb :index, locals: locals
+    html = erb :index, locals: locals
+    cache_top(session[:user_id], html)
+    html
   end
 
   get '/profile/:account_name' do
@@ -305,6 +327,7 @@ SQL
 
   post '/profile/:account_name' do
     authenticated!
+    clear_top_cache(session[:user_id])
     if params['account_name'] != current_user[:account_name]
       raise Isucon5::PermissionDenied
     end
@@ -375,6 +398,7 @@ SQL
 
   post '/diary/entry' do
     authenticated!
+    clear_top_cache(session[:user_id])
     query = 'INSERT INTO entries (user_id, private, body) VALUES (?,?,?)'
     body = (params['title'] || "タイトルなし") + "\n" + params['content']
     db.xquery(query, current_user[:id], (params['private'] ? '1' : '0'), body)
@@ -383,6 +407,7 @@ SQL
 
   post '/diary/comment/:entry_id' do
     authenticated!
+    clear_top_cache(session[:user_id])
     entry = db.xquery('SELECT * FROM entries WHERE id = ?', params['entry_id']).first
     unless entry
       raise Isucon5::ContentNotFound
@@ -428,6 +453,7 @@ SQL
   end
 
   post '/friends/:account_name' do
+    clear_top_cache(session[:user_id])
     user = user_from_account(params['account_name'])
     unless user
       raise Isucon5::ContentNotFound
