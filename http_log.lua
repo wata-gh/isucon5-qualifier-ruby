@@ -1,3 +1,4 @@
+local route = require "normalize_path"
 local mysql = require "resty.mysql"
 local db, err = mysql:new()
 if not db then
@@ -31,10 +32,13 @@ for k, v in pairs(h) do
   raw_header = raw_header .. "\n" .. k .. ": " .. v
 end
 
+local normalized_path = route.normalize(ngx.var.uri)
+
 local req_body = ngx.req.get_body_data() == nil and "" or ngx.req.get_body_data()
-local sql = "insert into raw_http_logs (request_id, method, path, http_version, req_header, req_body, status, res_header, res_body, res_time) values (" 
+local sql = "insert into raw_http_logs (request_id, method, normalized_path, path, http_version, req_header, req_body, status, res_header, res_body, res_time) values ("
   .. "  \'" .. ngx.var.request_id .. "\'"      -- request_id
   .. ", \'" .. ngx.req.get_method() .. "\'"    -- method
+  .. ", \'" .. normalized_path .. "\'"         -- normalized_path
   .. ", \'" .. ngx.var.uri .. "\'"             -- path
   .. ", \'" .. ngx.req.http_version() .. "\'"  -- http_version
   .. ", \'" .. ngx.req.raw_header() .. "\'"    -- req_header
