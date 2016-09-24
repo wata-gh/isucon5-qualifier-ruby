@@ -189,7 +189,7 @@ class Isucon5::WebApp < Sinatra::Base
     entries_query = <<SQL
 SELECT
  id,
- SUBSTRING_INDEX(body, '\n', 1) AS title,
+ title,
  private
 FROM entries
 WHERE user_id = ?
@@ -218,7 +218,7 @@ SQL
     entries_of_friends_query = <<SQL
 SELECT
  id,
- SUBSTRING_INDEX(body, '\n', 1) AS title,
+ title,
  user_id
 FROM entries e
 WHERE
@@ -298,7 +298,7 @@ SQL
               'SELECT * FROM entries WHERE user_id = ? AND private=0 ORDER BY created_at LIMIT 5'
             end
     entries = db.xquery(query, owner[:id])
-      .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
+      .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:content] = entry[:body]; entry }
     mark_footprint(owner[:id])
     erb :profile, locals: { owner: owner, profile: prof, entries: entries, private: permitted?(owner[:id]) }
   end
@@ -345,7 +345,7 @@ SQL
               'SELECT * FROM entries WHERE user_id = ? AND private=0 ORDER BY created_at DESC LIMIT 20'
             end
     entries = db.xquery(query, owner[:id])
-      .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
+      .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:content] = entry[:body]; entry }
     mark_footprint(owner[:id])
     query = <<SQL
 select entry_id, count(1) count from comments
@@ -362,7 +362,7 @@ SQL
     authenticated!
     entry = db.xquery('SELECT * FROM entries WHERE id = ?', params['entry_id']).first
     raise Isucon5::ContentNotFound unless entry
-    entry[:title], entry[:content] = entry[:body].split(/\n/, 2)
+    entry[:content] = entry[:body]
     entry[:is_private] = (entry[:private] == 1)
     owner = get_user(entry[:user_id])
     if entry[:is_private] && !permitted?(owner[:id])
@@ -375,9 +375,8 @@ SQL
 
   post '/diary/entry' do
     authenticated!
-    query = 'INSERT INTO entries (user_id, private, body) VALUES (?,?,?)'
-    body = (params['title'] || "タイトルなし") + "\n" + params['content']
-    db.xquery(query, current_user[:id], (params['private'] ? '1' : '0'), body)
+    query = 'INSERT INTO entries (user_id, private, title, body) VALUES (?,?,?,?)'
+    db.xquery(query, current_user[:id], (params['private'] ? '1' : '0'), params['title'] || "タイトルなし", params['content'])
     redirect "/diary/entries/#{current_user[:account_name]}"
   end
 
