@@ -3,3 +3,4 @@ vendor
 .bundle
 *.dump
 static
+*.gz
