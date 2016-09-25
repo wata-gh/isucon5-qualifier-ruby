@@ -279,14 +279,13 @@ SQL
 
     comments_for_me_query = <<SQL
 SELECT
-  c.id AS id,
-  c.entry_id AS entry_id,
-  c.user_id AS user_id,
-  c.comment AS comment,
-  c.created_at AS created_at
+  id,
+  entry_id,
+  user_id,
+  comment,
+  created_at
 FROM comments c
-JOIN entries e ON c.entry_id = e.id
-WHERE e.user_id = ?
+WHERE entry_user_id = ?
 ORDER BY c.created_at DESC
 LIMIT 10
 SQL
@@ -451,7 +450,8 @@ SQL
 
   post '/diary/comment/:entry_id' do
     authenticated!
-    entry = db.xquery('SELECT * FROM entries WHERE id = ?', params['entry_id']).first
+    entry_id = params['entry_id'].to_i
+    entry = db.xquery('SELECT user_id, private FROM entries WHERE id = ?', entry_id).first
     unless entry
       raise Isucon5::ContentNotFound
     end
@@ -459,8 +459,8 @@ SQL
     if entry[:is_private] && !permitted?(entry[:user_id])
       raise Isucon5::PermissionDenied
     end
-    query = 'INSERT INTO comments (entry_id, user_id, comment) VALUES (?,?,?)'
-    db.xquery(query, entry[:id], current_user[:id], params['comment'])
+    query = 'INSERT INTO comments (entry_id, entry_user_id, user_id, comment) VALUES (?,?,?,?)'
+    db.xquery(query, entry_id, entry[:user_id], current_user[:id], params['comment'])
     redirect "/diary/entry/#{entry[:id]}"
   end
 
