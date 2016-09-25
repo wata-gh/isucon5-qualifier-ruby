@@ -31,7 +31,19 @@ class Isucon5::WebApp < Sinatra::Base
   configure do
     Mysql2QueryLogger.enable! do |mesg|
       query = 'INSERT INTO raw_sql_logs (request_id, sql_text, caller, duration) VALUES (?,?,?,?)'
-      db = Thread.current[:isucon5_db]
+      db = Thread.current[:mysql_log_db]
+      unless db
+        db = Mysql2::Client.new(
+          host: ENV['ISUCON5_DB_HOST'] || 'localhost',
+          port: ENV['ISUCON5_DB_PORT'] && ENV['ISUCON5_DB_PORT'].to_i,
+          username: ENV['ISUCON5_DB_USER'] || 'root',
+          password: ENV['ISUCON5_DB_PASSWORD'],
+          database: ENV['ISUCON5_DB_NAME'] || 'isucon5q',
+          reconnect: true,
+        )
+        db.query_options.merge!(symbolize_keys: true)
+        Thread.current[:mysql_log_db] = db
+      end
       request_id = Thread.current[:request].env['HTTP_X_LUA_PROXY_ID']
       db.xquery(query, request_id, mesg[:sql], mesg[:caller], mesg[:duration])
     end
@@ -150,6 +162,72 @@ class Isucon5::WebApp < Sinatra::Base
     def prefectures
       PREFS
     end
+
+    def entry_by_id(entry_id)
+      entry_query = <<SQL
+SELECT
+ id,
+ SUBSTRING_INDEX(body, '\n', 1) AS title,
+ created_at
+FROM entries e
+where id = ?
+SQL
+      entry = db.xquery(entry_query, entry_id).first
+    end
+
+    def cache_entries_of_friends(user_id, entry_id)
+      entry = entry_by_id(entry_id)
+      entry_owner = JSON.parse(redis.get(user_id), symbolize_names: true)
+      html = <<EOS
+<div class="friend-entry">
+ <ul class="list-group">
+  <li class="list-group-item entry-owner"><a href="/diary/entries/#{entry_owner[:account_name]}">#{entry_owner[:nick_name]}さん</a>:
+  <li class="list-group-item entry-title"><a href="/diary/entry/#{entry[:id]}">#{entry[:title]}</a>
+  <li class="list-group-item entry-created-at">投稿時刻:#{entry[:created_at]}
+ </ul>
+</div>
+EOS
+
+      cache = [entry[:created_at].to_datetime.to_time.to_i, html]
+      friends.keys.each do |id|
+        redis.zadd("entries_of_friends/#{id}", cache)
+      end
+    end
+
+    def update_cache_entries_of_friends(user_id)
+      friend_ids = db.xquery('select another from relations where one = ?', user_id).map {|rel| rel[:another]}
+
+      entries_of_friends_query = <<SQL
+SELECT
+ id,
+ SUBSTRING_INDEX(body, '\n', 1) AS title,
+ user_id,
+ created_at
+FROM entries e
+WHERE
+ e.user_id in (#{friend_ids.join(',')})
+ORDER BY created_at DESC
+LIMIT 10
+SQL
+      entries_of_friends = db.xquery(entries_of_friends_query).map do |rel|
+        entry_owner = JSON.parse(redis.get(rel[:user_id]), symbolize_names: true)
+        html = <<EOS
+<div class="friend-entry">
+ <ul class="list-group">
+  <li class="list-group-item entry-owner"><a href="/diary/entries/#{entry_owner[:account_name]}">#{entry_owner[:nick_name]}さん</a>:
+  <li class="list-group-item entry-title"><a href="/diary/entry/#{rel[:id]}">#{rel[:title]}</a>
+  <li class="list-group-item entry-created-at">投稿時刻:#{rel[:created_at]}
+ </ul>
+</div>
+EOS
+        [rel[:created_at].to_datetime.to_time.to_i, html]
+      end
+      redis.pipelined do
+        key = "entries_of_friends/#{user_id}"
+        redis.del(key)
+        redis.zadd(key, entries_of_friends)
+      end
+    end
   end
 
   error Isucon5::AuthenticationError do
@@ -215,18 +293,7 @@ SQL
     comments_for_me = db.xquery(comments_for_me_query, current_user[:id])
 
     friend_ids = friends.keys.join(',')
-    entries_of_friends_query = <<SQL
-SELECT
- id,
- SUBSTRING_INDEX(body, '\n', 1) AS title,
- user_id
-FROM entries e
-WHERE
- e.user_id in (#{friend_ids})
-ORDER BY created_at DESC
-LIMIT 10
-SQL
-    entries_of_friends = db.xquery(entries_of_friends_query)
+    entries_of_friends = redis.zrevrange("entries_of_friends/#{current_user[:id]}", 0, 9)
 
     comments_of_friends_query = <<SQL
 SELECT
@@ -378,6 +445,7 @@ SQL
     query = 'INSERT INTO entries (user_id, private, body) VALUES (?,?,?)'
     body = (params['title'] || "タイトルなし") + "\n" + params['content']
     db.xquery(query, current_user[:id], (params['private'] ? '1' : '0'), body)
+    cache_entries_of_friends(current_user[:id], db.last_id)
     redirect "/diary/entries/#{current_user[:account_name]}"
   end
 
@@ -433,6 +501,7 @@ SQL
       raise Isucon5::ContentNotFound
     end
     db.xquery('INSERT INTO relations (one, another) VALUES (?,?), (?,?)', current_user[:id], user[:id], user[:id], current_user[:id])
+    update_cache_entries_of_friends(current_user[:id])
     redirect '/friends'
   end
 
