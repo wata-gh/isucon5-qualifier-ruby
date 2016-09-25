@@ -1,11 +1,13 @@
 create_table "comments", force: :cascade do |t|
-  t.integer  "entry_id",   limit: 4,     null: false
-  t.integer  "user_id",    limit: 4,     null: false
-  t.text     "comment",    limit: 65535
-  t.datetime "created_at",               null: false
+  t.integer  "entry_id",      limit: 4,     null: false
+  t.integer  "user_id",       limit: 4,     null: false
+  t.integer  "entry_user_id", limit: 4,     null: false
+  t.text     "comment",       limit: 65535
+  t.datetime "created_at",                  null: false
 end
 
 add_index "comments", ["entry_id"], name: "entry_id", using: :btree
+add_index "comments", ["entry_user_id"], name: "entry_user_id", using: :btree
 add_index "comments", ["user_id"], name: "comments_user_id", using: :btree
 
 create_table "entries", force: :cascade do |t|
