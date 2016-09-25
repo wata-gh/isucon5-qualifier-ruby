@@ -461,7 +461,7 @@ SQL
     end
     query = 'INSERT INTO comments (entry_id, entry_user_id, user_id, comment) VALUES (?,?,?,?)'
     db.xquery(query, entry_id, entry[:user_id], current_user[:id], params['comment'])
-    redirect "/diary/entry/#{entry[:id]}"
+    redirect "/diary/entry/#{entry_id}"
   end
 
   get '/footprints' do
