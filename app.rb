@@ -297,17 +297,16 @@ SQL
     comments_of_friends_query = <<SQL
 SELECT
   c.*,
-  e.user_id as entry_user_id,
+  c.entry_user_id,
   u.account_name as entry_account_name,
   u.nick_name as entry_nick_name
 FROM comments c
-JOIN entries e ON c.entry_id = e.id
-JOIN users u on e.user_id = u.id
+JOIN users u on c.entry_user_id = u.id
 WHERE c.user_id IN (#{friend_ids})
 AND (
-  e.private = 0
+  c.private = 0
   OR
-  e.private = 1 AND (e.user_id = ? OR e.user_id IN (#{friend_ids}))
+  c.private = 1 AND (c.entry_user_id = ? OR c.entry_user_id IN (#{friend_ids}))
 )
 ORDER BY c.id DESC LIMIT 10
 SQL

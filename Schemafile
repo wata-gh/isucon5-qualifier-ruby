@@ -2,6 +2,7 @@ create_table "comments", force: :cascade do |t|
   t.integer  "entry_id",      limit: 4,     null: false
   t.integer  "user_id",       limit: 4,     null: false
   t.integer  "entry_user_id", limit: 4,     null: false
+  t.integer  "private",       limit: 1,     null: false
   t.text     "comment",       limit: 65535
   t.datetime "created_at",                  null: false
 end
