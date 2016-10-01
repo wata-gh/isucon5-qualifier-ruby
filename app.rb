@@ -607,42 +607,49 @@ SQL
   include Helpers
   include Actions
   def call
-    case @env['REQUEST_METHOD']
-    when 'GET'
-      case @env['PATH_INFO']
-      when "/"; get_index
-      when "/initialize"; get_initialize
-      when "/login"; get_login
-      when "/logout"; get_logout
-      when "/footprints"; get_footprints
-      when "/friends"; get_friends
-      when /^\/profile\/(.*)/
-        get_profile_account_name($1)
-      when /^\/diary\/entry\/(.*)/
-        get_diary_entry_entry_id($1)
-      when /^\/diary\/entries\/(.*)/
-        get_diary_entries_account_name($1)
-      else; not_found
+    begin
+      case @env['REQUEST_METHOD']
+      when 'GET'
+        case @env['PATH_INFO']
+        when "/"; get_index
+        when "/initialize"; get_initialize
+        when "/login"; get_login
+        when "/logout"; get_logout
+        when "/footprints"; get_footprints
+        when "/friends"; get_friends
+        when /^\/profile\/(.*)/
+          get_profile_account_name($1)
+        when /^\/diary\/entry\/(.*)/
+          get_diary_entry_entry_id($1)
+        when /^\/diary\/entries\/(.*)/
+          get_diary_entries_account_name($1)
+        else; not_found
       end
 
-    when 'POST'
-      case @env['PATH_INFO']
-      when '/login'; post_login
-      when '/diary/entry'; post_diary_entry
-      when /^\/profile\/(.*)/
-        post_profile_account_name($1)
-      when /^\/diary\/comment\/(.*)/
-        post_diary_comment_entry_id($1)
-      when /^\/friends\/(.*)/
-        post_friends_account_name($1)
-      else; not_found
+      when 'POST'
+        case @env['PATH_INFO']
+        when '/login'; post_login
+        when '/diary/entry'; post_diary_entry
+        when /^\/profile\/(.*)/
+          post_profile_account_name($1)
+        when /^\/diary\/comment\/(.*)/
+          post_diary_comment_entry_id($1)
+        when /^\/friends\/(.*)/
+          post_friends_account_name($1)
+        else; not_found
+        end
+
+      else
+        not_found
       end
 
-    else
-      not_found
+      @body = [@body] unless @body.respond_to?(:each)
+      response
+    rescue Isucon5::PermissionDenied => e
+      @headers['Content-Type'] ||= 'text/html'
+      @status = 403
+      @body = ['403']
+      response
     end
-
-    @body = [@body] unless @body.respond_to?(:each)
-    response
   end
 end
