@@ -1,3 +1,8 @@
+<%
+owner = @owner
+entry = @entry
+comments = @comments
+%>
 <h2><%= owner[:nick_name] %>さんの日記</h2>
 <div class="row panel panel-primary" id="entry-entry">
   <div class="entry-title">タイトル: <a href="/diary/entry/<%= entry[:id] %>"><%= entry[:title] %></a></div>

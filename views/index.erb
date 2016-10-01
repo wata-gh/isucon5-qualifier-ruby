@@ -1,3 +1,13 @@
+<%
+require 'awesome_print'
+profile = @profile
+entries = @entries
+footprints = @footprints
+comments_for_me = @comments_for_me
+entries_of_friends = @entries_of_friends
+comments_of_friends = @comments_of_friends
+comments_users_hash = @comments_users_hash
+%>
 <h2>ISUxi index</h2>
 <div class="row panel panel-primary" id="prof">
   <div class="col-md-12 panel-title" id="prof-nickname"><%= @user[:nick_name] %></div>
